@@ -4,6 +4,9 @@ signals send thread when input has been added and ready to send
 */
 #include "input-send.h"
 #include <pthread.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +17,7 @@ signals send thread when input has been added and ready to send
 //defined in s-talk.c, passed here as pointers
 static pthread_cond_t *s_pOkToSend;
 static pthread_mutex_t *s_pmutex;
-static *s_pSendList;
+static List *s_pSendList;
 
 pthread_t threadInput;
 pthread_t threadSend;
@@ -59,7 +62,7 @@ void* sendThread(){
 	// filling sender information
 	sin.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
 	sin.sin_addr.s_addr = INADDR_ANY;
-	servaddr.sin_port = htons(PORT);
+	sin.sin_port = htons(PORT);
 
 	// initialize socket + error check
 	if ( (socketDescriptor = socket(PF_INET, SOCK_DGRAM,0)) < 0){
@@ -97,7 +100,7 @@ void* sendThread(){
 			perror("writing to socket failed\n");
 			exit(EXIT_FAILURE);
 		}
-		printf("message sent.\n")
+		printf("message sent.\n");
 	}
 	return NULL;
 }

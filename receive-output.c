@@ -1,7 +1,9 @@
 #include "receive-output.h"
 
 #include <pthread.h>
-
+#include <netdb.h>
+#include <unistd.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +14,7 @@
 //defined in s-talk.c, passed here as pointers
 static pthread_cond_t *s_pOkToPrint;
 static pthread_mutex_t *s_pmutex;
-static *s_pPrintList;
+static List *s_pPrintList;
 
 pthread_t threadPrint;
 pthread_t threadReceive;
@@ -28,7 +30,7 @@ void* receiveThread(){
 	// filling sender information
 	sin.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
 	sin.sin_addr.s_addr = INADDR_ANY;
-	servaddr.sin_port = htons(PORT);
+	sin.sin_port = htons(PORT);
 
 	// initialize socket + error check
 	if ( (socketDescriptor = socket(PF_INET, SOCK_DGRAM,0)) < 0){
@@ -50,7 +52,7 @@ void* receiveThread(){
 
         char received[MSG_MAX_LEN];
 
-		if ( recvfrom(socketDescriptor, received, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, &sin_len < 0 ) {
+		if ( recvfrom(socketDescriptor, received, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, &sin_len) < 0 ) {
 			perror("writing to socket failed\n");
 			exit(EXIT_FAILURE);
 		}
