@@ -40,7 +40,7 @@ void* sendThread(){
 	pthread_mutex_unlock(&mutex);
 
 	int socketDescriptor;
-	// socket address for sender (self) and receiver (remote address)
+	// socket address for sender (self)
 	struct sockaddr_in sin;
 
 	memset(&sin,0,sizeof(sin));
@@ -63,6 +63,7 @@ void* sendThread(){
 	}
 	 
 	while(1){
+		// socket address of receiver (remote address)
 		struct sockaddr_in sinRemote;
 		memset(&sinRemote, 0, sizeof(sinRemote));
 		if ( sendto(socketDescriptor, msg, MSG_MAX_LEN,0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
@@ -78,11 +79,10 @@ void* sendThread(){
 void* receiveThread(){
 
 	int socketDescriptor;
-	// socket address for receiver (self) and sender (remote address)
-	struct sockaddr_in sin, sinRemote;
+	// socket address for receiver (self)
+	struct sockaddr_in sin;
 
 	memset(&sin,0,sizeof(sin));
-	memset(&sinRemote, 0, sizeof(sinRemote));
 
 	// filling sender information
 	sin.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
@@ -102,6 +102,7 @@ void* receiveThread(){
 	}
 	 
 	while(1){
+		// socket address of sender (remote)
 		struct sockaddr_in sinRemote;
 		memset(&sinRemote, 0, sizeof(sinRemote));
 		unsigned int sin_len = sizeof(sinRemote);
