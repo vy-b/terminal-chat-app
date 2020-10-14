@@ -10,7 +10,7 @@
 static pthread_cond_t s_OkToSend = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t s_OkToPrint = PTHREAD_COND_INITIALIZER;
 
-pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 List* SendList = List_create();
 List* PrintList = List_create();
