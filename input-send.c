@@ -3,6 +3,7 @@ input thread waits for keyboard input then adds to the list adt
 signals send thread when input has been added and ready to send
 */
 #include "input-send.h"
+#include "list.h"
 #include <pthread.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -17,7 +18,7 @@ signals send thread when input has been added and ready to send
 //defined in s-talk.c, passed here as pointers
 static pthread_cond_t *s_pOkToSend;
 static pthread_mutex_t *s_pmutex;
-static List *s_pSendList;
+static List* s_pSendList;
 
 pthread_t threadInput;
 pthread_t threadSend;
@@ -25,7 +26,7 @@ pthread_t threadSend;
 // waits for input from keyboard and adds to list
 void* inputThread(){
 	while (1){
-		char* msg[MSG_MAX_LEN];
+		char msg[MSG_MAX_LEN];
 		fgets(msg, MSG_MAX_LEN,stdin);
 
 		// start critical section
@@ -70,12 +71,14 @@ void* sendThread(){
 		exit(EXIT_FAILURE);
 	}
 
-	// bind
-	if ( bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin)) < 0){
-        perror("bind failed"); 
-        exit(EXIT_FAILURE); 
-	}
-	 
+	pthread_mutex_lock(s_pmutex);
+		// bind
+		if ( bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin)) < 0){
+			perror("bind failed"); 
+			exit(EXIT_FAILURE); 
+		}
+	pthread_mutex_unlock(s_pmutex);
+
 	while(1){
 		//after creating sockets, wait for signal to send (wait for item to be added to list)
 		pthread_mutex_lock(s_pmutex);
@@ -83,20 +86,23 @@ void* sendThread(){
 			pthread_cond_wait(s_pOkToSend, s_pmutex);
 		}
 		pthread_mutex_unlock(s_pmutex);
-		
-		char msg[MSG_MAX_LEN];
+
+		char* toSend;
 
 		pthread_mutex_lock(s_pmutex);
 		{
 			// take item off list and store in string
-			msg = List_remove(s_pSendList);
+			toSend = List_remove(s_pSendList);
 		}
 		pthread_mutex_unlock(s_pmutex);
 
 		// socket address of receiver (remote address)
 		struct sockaddr_in sinRemote;
 		memset(&sinRemote, 0, sizeof(sinRemote));
-		if ( sendto(socketDescriptor, msg, MSG_MAX_LEN,0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
+		sinRemote.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
+		sinRemote.sin_addr.s_addr = INADDR_ANY;
+		sinRemote.sin_port = htons(PORT);
+		if ( sendto(socketDescriptor, toSend, MSG_MAX_LEN,0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
 			perror("writing to socket failed\n");
 			exit(EXIT_FAILURE);
 		}

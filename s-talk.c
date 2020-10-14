@@ -12,10 +12,12 @@ static pthread_cond_t s_OkToPrint = PTHREAD_COND_INITIALIZER;
 
 static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-List* SendList = List_create();
-List* PrintList = List_create();
+
 
 int main() {
+    List* SendList = List_create();
+    List* PrintList = List_create();
+
 	inputThread_init(&s_mutex, &s_OkToSend, SendList);
 	sendThread_init(&s_mutex, &s_OkToSend, SendList);
 	receiveThread_init(&s_mutex, &s_OkToPrint, PrintList);

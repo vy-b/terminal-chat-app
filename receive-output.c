@@ -1,5 +1,5 @@
 #include "receive-output.h"
-
+#include "list.h"
 #include <pthread.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -37,12 +37,13 @@ void* receiveThread(){
 		perror("socket creation failed\n");
 		exit(EXIT_FAILURE);
 	}
-
-	// bind
-	if ( bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin)) < 0){
-        perror("bind failed"); 
-        exit(EXIT_FAILURE); 
-	}
+    pthread_mutex_lock(s_pmutex);
+        // bind
+        if ( bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin)) < 0){
+            perror("bind failed"); 
+            exit(EXIT_FAILURE); 
+        }
+    pthread_mutex_unlock(s_pmutex);
 	 
 	while(1){
 		// socket address of sender (remote)
@@ -60,7 +61,7 @@ void* receiveThread(){
 		pthread_mutex_lock(s_pmutex);
         {
             // add received item to list to print
-            List_add(pReceiveList, received);
+            List_add(s_pPrintList, received);
         }
         pthread_mutex_unlock(s_pmutex);
 		// done critical section
@@ -84,7 +85,7 @@ void* printThread() {
 		}
     pthread_mutex_unlock(s_pmutex);
 
-	char toPrint[MSG_MAX_LEN];
+	char* toPrint;
 
     pthread_mutex_lock(s_pmutex);
 		{
