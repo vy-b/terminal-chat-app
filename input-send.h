@@ -7,7 +7,8 @@
 void inputThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend, List* pSendList);
 void inputThread_shutdown();
 
-void sendThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend, List* pSendList);
+void sendThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend, 
+    List* pSendList, int* socketDescriptr);
 void sendThread_shutdown();
 
 #endif

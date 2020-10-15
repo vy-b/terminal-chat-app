@@ -18,43 +18,22 @@ static List *s_pPrintList;
 
 pthread_t threadPrint;
 pthread_t threadReceive;
+int* s_socket;
 
 void* receiveThread(){
-
-	int socketDescriptor;
-	// socket address for receiver (self)
-	struct sockaddr_in sin;
-
-	memset(&sin,0,sizeof(sin));
-
-	// filling sender information
-	sin.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
-	sin.sin_addr.s_addr = INADDR_ANY;
-	sin.sin_port = htons(PORT);
-
-	// initialize socket + error check
-	if ( (socketDescriptor = socket(PF_INET, SOCK_DGRAM,0)) < 0){
-		perror("socket creation failed\n");
-		exit(EXIT_FAILURE);
-	}
-    pthread_mutex_lock(s_pmutex);
-        // bind
-        if ( bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin)) < 0){
-            perror("bind failed"); 
-            exit(EXIT_FAILURE); 
-        }
-    pthread_mutex_unlock(s_pmutex);
-	 
 	while(1){
 		// socket address of sender (remote)
 		struct sockaddr_in sinRemote;
 		memset(&sinRemote, 0, sizeof(sinRemote));
+        sinRemote.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
+		sinRemote.sin_addr.s_addr = INADDR_ANY;
+		sinRemote.sin_port = htons(PORT);
 		unsigned int sin_len = sizeof(sinRemote);
 
         char received[MSG_MAX_LEN];
 
-		if ( recvfrom(socketDescriptor, received, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, &sin_len) < 0 ) {
-			perror("writing to socket failed\n");
+		if ( recvfrom(*s_socket, received, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, &sin_len) < 0 ) {
+			perror("receiving socket failed\n");
 			exit(EXIT_FAILURE);
 		}
 		// entering critical section
@@ -78,24 +57,27 @@ void* receiveThread(){
 }
 
 void* printThread() {
-    // wait for signal to print
-    pthread_mutex_lock(s_pmutex);
-		{
-			pthread_cond_wait(s_pOkToPrint, s_pmutex);
-		}
-    pthread_mutex_unlock(s_pmutex);
+    while (1){
+        // wait for signal to print
+        pthread_mutex_lock(s_pmutex);
+            {
+                pthread_cond_wait(s_pOkToPrint, s_pmutex);
+            }
+        pthread_mutex_unlock(s_pmutex);
 
-	char* toPrint;
+        char* toPrint;
 
-    pthread_mutex_lock(s_pmutex);
-		{
-			// take item off list and store in string
-			toPrint = List_remove(s_pPrintList);
-		}
-    pthread_mutex_unlock(s_pmutex);
+        pthread_mutex_lock(s_pmutex);
+            {
+                // take item off list and store in string
+                toPrint = List_remove(s_pPrintList);
+            }
+        pthread_mutex_unlock(s_pmutex);
 
-	printf("%s\n",toPrint);
-	return NULL;
+        printf("%s\n",toPrint);
+        printf("received.\n");
+        return NULL;
+    }
 }
 
 void printThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToPrint, List* pPrintList)
@@ -113,13 +95,14 @@ void printThread_shutdown()
     pthread_join(threadPrint,NULL);
 }
 
-void receiveThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToPrint, List* pPrintList)
+void receiveThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToPrint, List* pPrintList, int* socketDescriptor)
 {
     // store the parameters in the pointers that were init at the beginning
     // of this file
     s_pmutex = pmutex;
     s_pOkToPrint = pOkToPrint;
     s_pPrintList = pPrintList;
+    s_socket = socketDescriptor;
 
     pthread_create(&threadReceive, NULL, receiveThread, NULL);
 }
