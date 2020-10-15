@@ -12,7 +12,9 @@ static pthread_cond_t s_OkToPrint = PTHREAD_COND_INITIALIZER;
 
 static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-
+//CONVERT HOSTNAME TO IP
+//struct hostent *hp = gethostbyname(argv[whatever postion the hostname is in]);
+//memcpy(&sin.sin_addr.s_addr, hp->h_addr_list[0], hp->h_length);
 
 int main() {
     List* SendList = List_create();
