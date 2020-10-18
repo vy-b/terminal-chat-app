@@ -74,7 +74,7 @@ void* printThread() {
             }
         pthread_mutex_unlock(s_pmutex);
 
-        printf("%s\n",toPrint);
+        fputs(toPrint,stdout);
         printf("received.\n");
         return NULL;
     }
