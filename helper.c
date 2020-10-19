@@ -22,13 +22,13 @@ int socket_init(int* pMyPortNumber){
 
 	// initialize socket + error check
 	if ( (socketDescriptor = socket(PF_INET, SOCK_DGRAM,0)) < 0){
-		perror("socket creation failed\n");
+		perror("socket generation failed\n");
 		exit(EXIT_FAILURE);
 	}
 
     // bind
     if ( bind(socketDescriptor, (struct sockaddr*) &sin, sizeof(sin)) < 0){
-        perror("bind failed"); 
+        perror("bind error\n"); 
         exit(EXIT_FAILURE); 
     }
     return socketDescriptor;

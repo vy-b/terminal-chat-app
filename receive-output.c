@@ -26,9 +26,6 @@ void* receiveThread(){
 		// socket address of sender (remote)
 		struct sockaddr_in sinRemote;
 		memset(&sinRemote, 0, sizeof(sinRemote));
-        sinRemote.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
-		sinRemote.sin_addr.s_addr = INADDR_ANY;
-		sinRemote.sin_port = htons(PORT);
 		unsigned int sin_len = sizeof(sinRemote);
 
         char received[MSG_MAX_LEN];
@@ -37,12 +34,12 @@ void* receiveThread(){
 			perror("receiving socket failed\n");
 			exit(EXIT_FAILURE);
 		}
-        printf("received: %s",received);
 		// entering critical section
 		pthread_mutex_lock(s_pmutex);
         {
             // add received item to list to print
             List_add(s_pPrintList, received);
+            
         }
         pthread_mutex_unlock(s_pmutex);
 		// done critical section
@@ -56,32 +53,29 @@ void* receiveThread(){
         pthread_mutex_unlock(s_pmutex);
         
 	}
-	return NULL;
 }
 
 void* printThread() {
     while (1){
-        while (flag == 0){
-            // wait for signal to print
-            pthread_mutex_lock(s_pmutex);
-                {
-                    pthread_cond_wait(s_pOkToPrint, s_pmutex);
-                }
-            pthread_mutex_unlock(s_pmutex);
+        // wait for signal to print
+        pthread_mutex_lock(s_pmutex);
+        {
+            while (flag == 0)
+                pthread_cond_wait(s_pOkToPrint, s_pmutex);
         }
+        pthread_mutex_unlock(s_pmutex);
+        
         char* toPrint;
 
         pthread_mutex_lock(s_pmutex);
-            {
-                // take item off list and store in string
-                toPrint = List_remove(s_pPrintList);
-                flag = 0;
-            }
+        {
+            // take item off list and store in string
+            toPrint = List_remove(s_pPrintList);
+            flag = 0;
+        }
         pthread_mutex_unlock(s_pmutex);
-
+        printf("received: ");
         fputs(toPrint,stdout);
-        printf("received.\n");
-        return NULL;
     }
 }
 

@@ -62,7 +62,8 @@ void* inputThread(){
 void* sendThread(){
 	struct hostent *remoteHost = gethostbyname(s_pRemoteHostName);
 	if (remoteHost == NULL){
-		printf("addr not found\n");
+		perror("addr not found\n");
+		exit(EXIT_FAILURE);
 	}
 	while(1){
 		//after creating sockets, wait for signal to send (wait for item to be added to list)
@@ -89,15 +90,17 @@ void* sendThread(){
 		// sinRemote.sin_addr.s_addr = INADDR_ANY;
 		sinRemote.sin_port = htons(*s_pportNumber);
 
-		char buffer[INET_ADDRSTRLEN];
-		inet_ntop( AF_INET, &sinRemote.sin_addr, buffer, sizeof( buffer ));
-		printf( "send address:%s\n", buffer );
+		//------------for debugging---------------
+		// char buffer[INET_ADDRSTRLEN];
+		// inet_ntop( AF_INET, &sinRemote.sin_addr, buffer, sizeof( buffer ));
+		// printf( "send address:%s\n", buffer );
+		//------------for debugging---------------
 
 		if ( sendto(*s_socket, toSend, MSG_MAX_LEN,0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
 			perror("writing to socket failed\n");
 			exit(EXIT_FAILURE);
 		}
-		printf("message sent.\n");
+		//printf("message sent.\n");
 	}
 	return NULL;
 }
