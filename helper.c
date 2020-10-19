@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define PORT 22110
 
-int socket_init(){
+
+int socket_init(int* pMyPortNumber){
     int socketDescriptor;
 	// socket address for receiver (self)
 	struct sockaddr_in sin;
@@ -18,7 +18,7 @@ int socket_init(){
 	// filling sender information
 	sin.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
 	sin.sin_addr.s_addr = INADDR_ANY;
-	sin.sin_port = htons(PORT);
+	sin.sin_port = htons(*pMyPortNumber);
 
 	// initialize socket + error check
 	if ( (socketDescriptor = socket(PF_INET, SOCK_DGRAM,0)) < 0){
@@ -33,4 +33,4 @@ int socket_init(){
     }
     return socketDescriptor;
 }
-	 
+

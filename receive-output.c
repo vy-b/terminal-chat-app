@@ -18,7 +18,9 @@ static List *s_pPrintList;
 
 pthread_t threadPrint;
 pthread_t threadReceive;
-int* s_socket;
+static int* s_socket;
+
+static int flag = 0;
 
 void* receiveThread(){
 	while(1){
@@ -36,6 +38,7 @@ void* receiveThread(){
 			perror("receiving socket failed\n");
 			exit(EXIT_FAILURE);
 		}
+        printf("received: %s",received);
 		// entering critical section
 		pthread_mutex_lock(s_pmutex);
         {
@@ -48,6 +51,7 @@ void* receiveThread(){
         // now wake up print thread
         pthread_mutex_lock(s_pmutex);
         {
+            flag = 1;
             pthread_cond_signal(s_pOkToPrint);
         }
         pthread_mutex_unlock(s_pmutex);
@@ -58,19 +62,21 @@ void* receiveThread(){
 
 void* printThread() {
     while (1){
-        // wait for signal to print
-        pthread_mutex_lock(s_pmutex);
-            {
-                pthread_cond_wait(s_pOkToPrint, s_pmutex);
-            }
-        pthread_mutex_unlock(s_pmutex);
-
+        while (flag == 0){
+            // wait for signal to print
+            pthread_mutex_lock(s_pmutex);
+                {
+                    pthread_cond_wait(s_pOkToPrint, s_pmutex);
+                }
+            pthread_mutex_unlock(s_pmutex);
+        }
         char* toPrint;
 
         pthread_mutex_lock(s_pmutex);
             {
                 // take item off list and store in string
                 toPrint = List_remove(s_pPrintList);
+                flag = 0;
             }
         pthread_mutex_unlock(s_pmutex);
 
@@ -111,3 +117,11 @@ void receiveThread_shutdown()
 {
     pthread_join(threadReceive,NULL);
 }
+
+/* to do 
+1. (just to clean up code): implement a receive-output initializer that allocates 
+the pointers to the mutex, condition variables, socket descriptor and malloc'd buffers.
+
+2. pthread_cancel on "!" input
+
+3. take hostname in main (or encapsulate by calling a function to help?)*/
