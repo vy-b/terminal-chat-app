@@ -48,11 +48,12 @@ int main(int argc, char* argv[]) {
 
 	int socketDescriptor = socket_init(&myPortNumber);
 	sendVariables_init(&s_mutex, &s_OkToSend, SendList, &socketDescriptor, remoteHostName, &portNumber);
+	receiveVariables_init(&s_mutex, &s_OkToPrint, PrintList, &socketDescriptor);
 
 	inputThread_init();
 	sendThread_init();
-	receiveThread_init(&s_mutex, &s_OkToPrint, PrintList, &socketDescriptor);
-	printThread_init(&s_mutex, &s_OkToPrint, PrintList);
+	receiveThread_init();
+	printThread_init();
 
 
 	sendThread_shutdown();

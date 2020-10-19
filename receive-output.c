@@ -9,7 +9,6 @@
 #include <string.h>
 
 #define MSG_MAX_LEN 1024
-#define PORT 22110
 
 //defined in s-talk.c, passed here as pointers
 static pthread_cond_t *s_pOkToPrint;
@@ -86,13 +85,8 @@ void* printThread() {
     }
 }
 
-void printThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToPrint, List* pPrintList)
+void printThread_init()
 {
-    // store the parameters in the pointers that were initialized at the beginning
-    s_pmutex = pmutex;
-    s_pOkToPrint = pOkToPrint;
-    s_pPrintList = pPrintList;
-
     pthread_create(&threadPrint, NULL, printThread, NULL);
 }
 
@@ -103,13 +97,6 @@ void printThread_shutdown()
 
 void receiveThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToPrint, List* pPrintList, int* socketDescriptor)
 {
-    // store the parameters in the pointers that were init at the beginning
-    // of this file
-    s_pmutex = pmutex;
-    s_pOkToPrint = pOkToPrint;
-    s_pPrintList = pPrintList;
-    s_socket = socketDescriptor;
-
     pthread_create(&threadReceive, NULL, receiveThread, NULL);
 }
 
@@ -118,6 +105,16 @@ void receiveThread_shutdown()
     pthread_join(threadReceive,NULL);
 }
 
+void receiveVariables_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToPrint, 
+    List* pPrintList, int* socketDescriptor){
+    // store the parameters in the pointers that were init at the beginning
+    // of this file
+    s_pmutex = pmutex;
+    s_pOkToPrint = pOkToPrint;
+    s_pPrintList = pPrintList;
+    s_socket = socketDescriptor;
+
+}
 /* to do 
 1. (just to clean up code): implement a receive-output initializer that allocates 
 the pointers to the mutex, condition variables, socket descriptor and malloc'd buffers.

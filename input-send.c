@@ -17,7 +17,6 @@ signals send thread when input has been added and ready to send
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #define MSG_MAX_LEN 1024
-#define PORT 22110
 
 //defined in s-talk.c, passed here as pointers
 static pthread_cond_t *s_pOkToSend;
