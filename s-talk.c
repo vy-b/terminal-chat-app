@@ -7,6 +7,7 @@
 #include "input-send.h"
 #include "receive-output.h"
 #include "list.h"
+#include "shutdownmanager.h"
 
 #include <sys/socket.h>
 #include <netinet/in.h>

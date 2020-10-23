@@ -2,6 +2,7 @@
 input thread waits for keyboard input then adds to the list adt
 signals send thread when input has been added and ready to send
 */
+#include "shutdownmanager.h"
 #include "input-send.h"
 #include "list.h"
 #include "helper.h"
@@ -29,18 +30,19 @@ static int* s_pportNumber;
 pthread_t threadInput;
 pthread_t threadSend;
 static int* s_socket;
+static char* s_pmsg = NULL;
 
 // waits for input from keyboard and adds to list
 void* inputThread(){
 	while (1){
-		char msg[MSG_MAX_LEN];
-		fgets(msg, MSG_MAX_LEN,stdin);
+		s_pmsg = malloc(MSG_MAX_LEN);
+		fgets(s_pmsg, MSG_MAX_LEN ,stdin);
 
 		// start critical section
 		pthread_mutex_lock(s_pmutex);
 		{
 			//add to list
-			if (List_add(s_pSendList, msg) != 0){
+			if (List_add(s_pSendList, s_pmsg) != 0){
 				perror("List add failed\n");
 				exit(EXIT_FAILURE);
 			}
@@ -48,6 +50,11 @@ void* inputThread(){
 		pthread_mutex_unlock(s_pmutex);
 		// end critical section
 		
+		if(strcmp("!\n", s_pmsg) == 0)
+		{
+			ShutdownManager_waitForShutdown(threadInput);
+
+		}
 		// now wake up send thread
 		pthread_mutex_lock(s_pmutex);
 		{
@@ -79,6 +86,7 @@ void* sendThread(){
 		{
 			// take item off list and store in string
 			toSend = List_remove(s_pSendList);
+			free(s_pmsg);
 		}
 		pthread_mutex_unlock(s_pmutex);
 
@@ -100,8 +108,14 @@ void* sendThread(){
 			perror("writing to socket failed\n");
 			exit(EXIT_FAILURE);
 		}
-		//printf("message sent.\n");
+
+		// if(strcmp("!\n", s_pmsg))
+		// {
+		// 	ShutdownManager_triggerShutdown(threadSend);
+
+		// }
 	}
+
 	return NULL;
 }
 
@@ -111,17 +125,19 @@ void inputThread_init()
 }
 
 void inputThread_shutdown()
-{
+{	
+	//pthread_cancel(threadInput);
     pthread_join(threadInput,NULL);
 }
 
 void sendThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend, List* pSendList, int* socketDescriptor, char* pRemoteHostAddr, int* pportNumber, int* pRemoteHostSize)
-{
+{	
     pthread_create(&threadSend, NULL, sendThread, NULL);
 }
 
 void sendThread_shutdown()
-{
+{	
+	//pthread_cancel(threadSend);
     pthread_join(threadSend,NULL);
 }
 

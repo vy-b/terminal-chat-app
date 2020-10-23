@@ -1,3 +1,4 @@
+#include "shutdownmanager.h"
 #include "receive-output.h"
 #include "list.h"
 #include <pthread.h>
@@ -18,6 +19,7 @@ static List *s_pPrintList;
 pthread_t threadPrint;
 pthread_t threadReceive;
 static int* s_socket;
+static char* s_preceived = NULL;
 
 static int flag = 0;
 
@@ -28,9 +30,9 @@ void* receiveThread(){
 		memset(&sinRemote, 0, sizeof(sinRemote));
 		unsigned int sin_len = sizeof(sinRemote);
 
-        char received[MSG_MAX_LEN];
+        s_preceived = malloc(MSG_MAX_LEN);
 
-		if ( recvfrom(*s_socket, received, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, &sin_len) < 0 ) {
+		if ( recvfrom(*s_socket, s_preceived, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, &sin_len) < 0 ) {
 			perror("receiving socket failed\n");
 			exit(EXIT_FAILURE);
 		}
@@ -38,11 +40,17 @@ void* receiveThread(){
 		pthread_mutex_lock(s_pmutex);
         {
             // add received item to list to print
-            List_add(s_pPrintList, received);
+            List_add(s_pPrintList, s_preceived);
             
         }
         pthread_mutex_unlock(s_pmutex);
 		// done critical section
+
+        // if(strcmp("!\n", s_preceived))
+        // {
+        //     ShutdownManager_waitForShutdown(threadReceive);
+
+        // }
 
         // now wake up print thread
         pthread_mutex_lock(s_pmutex);
@@ -72,10 +80,17 @@ void* printThread() {
             // take item off list and store in string
             toPrint = List_remove(s_pPrintList);
             flag = 0;
+            free(s_preceived);
         }
         pthread_mutex_unlock(s_pmutex);
         printf("received: ");
         fputs(toPrint,stdout);
+
+        // if(strcmp("!\n", s_preceived))
+        // {
+        //     ShutdownManager_triggerShutdown(threadPrint);
+
+        // }
     }
 }
 
