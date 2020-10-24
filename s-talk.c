@@ -5,7 +5,6 @@
 #include <string.h>
 #include "helper.h"
 #include "input-send.h"
-#include "receive-output.h"
 #include "list.h"
 #include "shutdownmanager.h"
 
