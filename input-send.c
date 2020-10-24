@@ -85,11 +85,13 @@ void* inputThread() {
 // takes item off sendlist and send
 void* sendThread() {
 	struct hostent *remoteHost = gethostbyname(s_pRemoteHostName);
-	if (remoteHost == NULL) {
+	if (remoteHost == NULL) 
+	{
 		perror("addr not found\n");
 		exit(EXIT_FAILURE);
 	}
-	while (1) {
+	while (1) 
+	{
 		//after creating sockets, wait for signal to send (wait for item to be added to list)
 		pthread_mutex_lock(s_pmutex);
 		{
@@ -143,53 +145,11 @@ void* sendThread() {
 				free(toSend);
 				toSend = NULL;
 			}
-
 		}
 		free(toSend);
-		
-		
 	}
-	free(remoteHost);
-
 	return NULL;
 }
-
-void inputThread_init()
-{
-	pthread_create(&threadInput, NULL, inputThread, NULL);
-}
-
-void inputThread_shutdown()
-{
-	//pthread_cancel(threadInput);
-	pthread_join(threadInput, NULL);
-}
-
-void sendThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend, List* pSendList, int* socketDescriptor, char* pRemoteHostAddr, int* pportNumber, int* pRemoteHostSize)
-{
-	pthread_create(&threadSend, NULL, sendThread, NULL);
-}
-
-void sendThread_shutdown()
-{
-	//pthread_cancel(threadSend);
-	pthread_join(threadSend, NULL);
-}
-
-void sendVariables_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend,
-                        List* pSendList, int* socketDescriptor, char* pRemoteHostName, int* pportNumber, pthread_cond_t *pOkToShutdown) {
-	// store the parameters in the pointers that were init at the beginning
-	// of this file
-	s_pmutex = pmutex;
-	s_pOkToSend = pOkToSend;
-	s_pSendList = pSendList;
-	s_socket = socketDescriptor;
-	s_pRemoteHostName = pRemoteHostName;
-	s_pportNumber = pportNumber;
-	s_pOkToShutdown = pOkToShutdown;
-}
-
-
 
 void* receiveThread() {
     while (1) {
@@ -272,13 +232,50 @@ void* printThread() {
 			//------------------------------------------------------------
 			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
-		
+
         if (toPrint) {
             printf("received: ");
             fputs(toPrint, stdout);
             free(toPrint);
         }
     }
+}
+
+void inputThread_init()
+{
+	pthread_create(&threadInput, NULL, inputThread, NULL);
+}
+
+void inputThread_shutdown()
+{
+	//pthread_cancel(threadInput);
+	pthread_join(threadInput, NULL);
+}
+
+void sendThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend, List* pSendList, int* socketDescriptor, char* pRemoteHostAddr, int* pportNumber, int* pRemoteHostSize)
+{
+	pthread_create(&threadSend, NULL, sendThread, NULL);
+}
+
+void sendThread_shutdown()
+{
+	//pthread_cancel(threadSend);
+	pthread_join(threadSend, NULL);
+}
+
+void sendVariables_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend,
+	List* pSendList, int* socketDescriptor, char* pRemoteHostName, 
+	int* pportNumber, pthread_cond_t *pOkToShutdown) 
+{
+	// store the parameters in the pointers that were init at the beginning
+	// of this file
+	s_pmutex = pmutex;
+	s_pOkToSend = pOkToSend;
+	s_pSendList = pSendList;
+	s_socket = socketDescriptor;
+	s_pRemoteHostName = pRemoteHostName;
+	s_pportNumber = pportNumber;
+	s_pOkToShutdown = pOkToShutdown;
 }
 
 void printThread_init()
