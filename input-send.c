@@ -42,6 +42,7 @@ static pthread_t threadPrint;
 static pthread_t threadReceive;
 static char* s_preceived = NULL;
 static int flag = 0;
+static int closedSocket = 0;
 
 // waits for input from keyboard and adds to list
 void* inputThread() {
@@ -75,6 +76,7 @@ void* inputThread() {
 			
 			ShutdownManager_waitForShutdown(s_pOkToShutdown, s_pmutex);
 			if (s_pmsg) free(s_pmsg);
+			printf("input self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
 	}
 }
@@ -107,7 +109,7 @@ void* sendThread() {
 		
 		//socket address of receiver (remote address)
 		struct sockaddr_in sinRemote;
-		// memset(&sinRemote, 0, sizeof(sinRemote));
+		memset(&sinRemote, 0, sizeof(sinRemote));
 		sinRemote.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
 		memcpy(&sinRemote.sin_addr, remoteHost->h_addr_list[0], remoteHost->h_length);
 		// sinRemote.sin_addr.s_addr = INADDR_ANY;
@@ -128,9 +130,14 @@ void* sendThread() {
 		{
 			printf("send thread shutdown\n");
 			ShutdownManager_triggerShutdown(s_pOkToShutdown, s_pmutex);
-			printf("input shutdown returns %d\n",ShutdownManager_isShuttingDown(threadInput));
+			if (closedSocket == 0){
+				close(*s_socket);
+				closedSocket = 1;
+			}
+			// this block is necessary to exit mutually if a ! is sent
 			printf("receive shutdown from send %d\n", ShutdownManager_isShuttingDown(threadReceive));
 			printf("print shutdown from send %d\n", ShutdownManager_isShuttingDown(threadPrint));
+			//------------------------------------------------------------
 			printf("send shutdown returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 			if (toSend) {
 				free(toSend);
@@ -218,7 +225,6 @@ void* receiveThread() {
         pthread_mutex_unlock(s_pmutex);
         if (strcmp("!\n", s_preceived) == 0)
 		{
-			
 			printf("receive thread shutdown\n");
 			ShutdownManager_waitForShutdown(s_pOkToShutdown, s_pmutex);
 			printf("receive self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
@@ -247,18 +253,26 @@ void* printThread() {
         
         pthread_mutex_unlock(s_pmutex);
         if (strcmp("!\n", toPrint) == 0)
-            {
-                printf("print thread shutdown\n");
-                if (toPrint) {
-                    free(toPrint);
-                    toPrint = NULL;
-                }
-                close(*s_socket);
-                ShutdownManager_triggerShutdown(s_pOkToShutdown, s_pmutex);
-				printf("input shutdown from print %d\n", ShutdownManager_isShuttingDown(threadInput));
-				printf("send shutdown from print %d\n", ShutdownManager_isShuttingDown(threadSend));
-                printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
-            }
+		{
+			if (toPrint) {
+				free(toPrint);
+				toPrint = NULL;
+			}
+
+			if (closedSocket == 0){
+			close(*s_socket);
+			closedSocket = 1;
+			}
+
+			ShutdownManager_triggerShutdown(s_pOkToShutdown, s_pmutex);
+
+			// this block is necessary to exit mutually if a ! is received
+			printf("input shutdown from print %d\n", ShutdownManager_isShuttingDown(threadInput));
+			printf("send shutdown from print %d\n", ShutdownManager_isShuttingDown(threadSend));
+			//------------------------------------------------------------
+			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
+		}
+		
         if (toPrint) {
             printf("received: ");
             fputs(toPrint, stdout);
