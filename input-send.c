@@ -1,4 +1,4 @@
-/* includes input thread and send thread 
+/* includes input thread and send thread
 input thread waits for keyboard input then adds to the list adt
 signals send thread when input has been added and ready to send
 */
@@ -33,26 +33,31 @@ static int* s_socket;
 static char* s_pmsg = NULL;
 
 // waits for input from keyboard and adds to list
-void* inputThread(){
-	while (1){
+void* inputThread() {
+	while (1) {
 		s_pmsg = malloc(MSG_MAX_LEN);
-		fgets(s_pmsg, MSG_MAX_LEN ,stdin);
+		fgets(s_pmsg, MSG_MAX_LEN , stdin);
 
 		// start critical section
 		pthread_mutex_lock(s_pmutex);
 		{
 			//add to list
-			if (List_add(s_pSendList, s_pmsg) != 0){
+			if (List_add(s_pSendList, s_pmsg) != 0) {
 				perror("List add failed\n");
 				exit(EXIT_FAILURE);
 			}
 		}
 		pthread_mutex_unlock(s_pmutex);
 		// end critical section
-		
-		if(strcmp("!\n", s_pmsg) == 0)
+
+		if (strcmp("!\n", s_pmsg) == 0)
 		{
-			ShutdownManager_waitForShutdown(threadInput);
+			ShutdownManager_triggerShutdown(threadInput);
+			
+			if (s_pmsg) {
+				free(s_pmsg);
+				s_pmsg = NULL;
+			}
 
 		}
 		// now wake up send thread
@@ -66,13 +71,13 @@ void* inputThread(){
 
 
 // takes item off sendlist and send
-void* sendThread(){
+void* sendThread() {
 	struct hostent *remoteHost = gethostbyname(s_pRemoteHostName);
-	if (remoteHost == NULL){
+	if (remoteHost == NULL) {
 		perror("addr not found\n");
 		exit(EXIT_FAILURE);
 	}
-	while(1){
+	while (1) {
 		//after creating sockets, wait for signal to send (wait for item to be added to list)
 		pthread_mutex_lock(s_pmutex);
 		{
@@ -104,16 +109,20 @@ void* sendThread(){
 		// printf( "send address:%s\n", buffer );
 		//------------for debugging---------------
 
-		if ( sendto(*s_socket, toSend, MSG_MAX_LEN,0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
+		if ( sendto(*s_socket, toSend, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
 			perror("writing to socket failed\n");
 			exit(EXIT_FAILURE);
 		}
 
-		// if(strcmp("!\n", s_pmsg))
-		// {
-		// 	ShutdownManager_triggerShutdown(threadSend);
+		if (strcmp("!\n", s_pmsg) == 0)
+		{
+			ShutdownManager_triggerShutdown(threadSend);
+			if (s_pmsg) {
+				free(s_pmsg);
+				s_pmsg = NULL;
+			}
 
-		// }
+		}
 	}
 
 	return NULL;
@@ -121,33 +130,33 @@ void* sendThread(){
 
 void inputThread_init()
 {
-    pthread_create(&threadInput, NULL, inputThread, NULL);
+	pthread_create(&threadInput, NULL, inputThread, NULL);
 }
 
 void inputThread_shutdown()
-{	
+{
 	//pthread_cancel(threadInput);
-    pthread_join(threadInput,NULL);
+	pthread_join(threadInput, NULL);
 }
 
 void sendThread_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend, List* pSendList, int* socketDescriptor, char* pRemoteHostAddr, int* pportNumber, int* pRemoteHostSize)
-{	
-    pthread_create(&threadSend, NULL, sendThread, NULL);
+{
+	pthread_create(&threadSend, NULL, sendThread, NULL);
 }
 
 void sendThread_shutdown()
-{	
+{
 	//pthread_cancel(threadSend);
-    pthread_join(threadSend,NULL);
+	pthread_join(threadSend, NULL);
 }
 
-void sendVariables_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend, 
-    List* pSendList, int* socketDescriptor, char* pRemoteHostName, int* pportNumber){
+void sendVariables_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend,
+                        List* pSendList, int* socketDescriptor, char* pRemoteHostName, int* pportNumber) {
 	// store the parameters in the pointers that were init at the beginning
-    // of this file
-    s_pmutex = pmutex;
-    s_pOkToSend = pOkToSend;
-    s_pSendList = pSendList;
+	// of this file
+	s_pmutex = pmutex;
+	s_pOkToSend = pOkToSend;
+	s_pSendList = pSendList;
 	s_socket = socketDescriptor;
 	s_pRemoteHostName = pRemoteHostName;
 	s_pportNumber = pportNumber;
