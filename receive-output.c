@@ -13,11 +13,12 @@
 
 //defined in s-talk.c, passed here as pointers
 static pthread_cond_t *s_pOkToPrint;
+static pthread_cond_t *s_pOkToShutdown;
 static pthread_mutex_t *s_pmutex;
 static List *s_pPrintList;
 
-pthread_t threadPrint;
-pthread_t threadReceive;
+static pthread_t threadPrint;
+static pthread_t threadReceive;
 static int* s_socket;
 static char* s_preceived = NULL;
 
@@ -40,17 +41,6 @@ void* receiveThread() {
         pthread_mutex_lock(s_pmutex);
         {
 
-            if (strcmp("!\n", s_preceived) == 0)
-            {
-                ShutdownManager_triggerShutdown(threadReceive);
-
-                if (s_preceived) {
-                    free(s_preceived);
-                    s_preceived = NULL;
-                }
-
-            }
-
             // add received item to list to print
             List_add(s_pPrintList, s_preceived);
 
@@ -58,7 +48,7 @@ void* receiveThread() {
         pthread_mutex_unlock(s_pmutex);
         // done critical section
 
-
+        
         // now wake up print thread
         pthread_mutex_lock(s_pmutex);
         {
@@ -66,7 +56,13 @@ void* receiveThread() {
             pthread_cond_signal(s_pOkToPrint);
         }
         pthread_mutex_unlock(s_pmutex);
+        if (strcmp("!\n", s_preceived) == 0)
+            {
+                
+                printf("receive thread shutdown\n");
+                ShutdownManager_waitForShutdown(s_pOkToShutdown, s_pmutex);
 
+            }
     }
 }
 
@@ -80,29 +76,33 @@ void* printThread() {
         }
         pthread_mutex_unlock(s_pmutex);
 
-        char* toPrint;
+        char* toPrint = NULL;
 
         pthread_mutex_lock(s_pmutex);
         {
             // take item off list and store in string
             toPrint = List_remove(s_pPrintList);
             flag = 0;
-            free(s_preceived);
-
-            if (strcmp("!\n", s_preceived) == 0)
-            {
-                ShutdownManager_triggerShutdown(threadPrint);
-                
-                if (s_preceived) {
-                    free(s_preceived);
-                    s_preceived = NULL;
-                }
-            }
         }
+        
         pthread_mutex_unlock(s_pmutex);
-        printf("received: ");
-        fputs(toPrint, stdout);
-
+        if (strcmp("!\n", toPrint) == 0)
+            {
+                printf("print thread shutdown\n");
+                if (toPrint) {
+                    free(toPrint);
+                    toPrint = NULL;
+                }
+                close(*s_socket);
+                ShutdownManager_triggerShutdown(s_pOkToShutdown, s_pmutex);
+                ShutdownManager_isShuttingDown(threadReceive);
+                ShutdownManager_isShuttingDown(threadPrint);
+            }
+        if (toPrint) {
+            printf("received: ");
+            fputs(toPrint, stdout);
+            free(toPrint);
+        }
     }
 }
 
@@ -127,14 +127,14 @@ void receiveThread_shutdown()
 }
 
 void receiveVariables_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToPrint,
-                           List* pPrintList, int* socketDescriptor) {
+                           List* pPrintList, int* socketDescriptor, pthread_cond_t *pOkToShutdown) {
     // store the parameters in the pointers that were init at the beginning
     // of this file
     s_pmutex = pmutex;
     s_pOkToPrint = pOkToPrint;
     s_pPrintList = pPrintList;
     s_socket = socketDescriptor;
-
+    s_pOkToShutdown = pOkToShutdown;
 }
 /* to do
 1. (just to clean up code): implement a receive-output initializer that allocates

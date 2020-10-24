@@ -15,8 +15,10 @@
 // initialize everything here, pass in other files
 static pthread_cond_t s_OkToSend = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t s_OkToPrint = PTHREAD_COND_INITIALIZER;
-
+static pthread_cond_t s_OkToShutdown = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
 
 //CONVERT HOSTNAME TO IP
 //struct hostent *hp = gethostbyname(argv[whatever postion the hostname is in]);
@@ -48,8 +50,8 @@ int main(int argc, char* argv[]) {
 	// for debugging --------------------------------------------
 
 	int socketDescriptor = socket_init(&myPortNumber);
-	sendVariables_init(&s_mutex, &s_OkToSend, SendList, &socketDescriptor, remoteHostName, &portNumber);
-	receiveVariables_init(&s_mutex, &s_OkToPrint, PrintList, &socketDescriptor);
+	sendVariables_init(&s_mutex, &s_OkToSend, SendList, &socketDescriptor, remoteHostName, &portNumber, &s_OkToShutdown);
+	receiveVariables_init(&s_mutex, &s_OkToPrint, PrintList, &socketDescriptor,  &s_OkToShutdown);
 
 	inputThread_init();
 	sendThread_init();

@@ -11,5 +11,5 @@ void receiveThread_init();
 void receiveThread_shutdown();
 
 void receiveVariables_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToPrint, 
-    List* pPrintList, int* socketDescriptor);
+    List* pPrintList, int* socketDescriptor, pthread_cond_t *pOkToShutdown);
 #endif

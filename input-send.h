@@ -11,6 +11,6 @@ void sendThread_init();
 void sendThread_shutdown();
 
 void sendVariables_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToSend, 
-    List* pSendList, int* socketDescriptor, char* pRemoteHostName, int* pportNumber);
+    List* pSendList, int* socketDescriptor, char*  pRemoteHostName, int* pportNumber, pthread_cond_t *pOkToShutdown);
 
 #endif
