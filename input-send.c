@@ -255,6 +255,8 @@ void* printThread() {
                 }
                 close(*s_socket);
                 ShutdownManager_triggerShutdown(s_pOkToShutdown, s_pmutex);
+				printf("input shutdown from print %d\n", ShutdownManager_isShuttingDown(threadInput));
+				printf("send shutdown from print %d\n", ShutdownManager_isShuttingDown(threadSend));
                 printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
             }
         if (toPrint) {
