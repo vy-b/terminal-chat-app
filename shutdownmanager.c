@@ -7,16 +7,16 @@
 
 
 
-void ShutdownManager_waitForShutdown(pthread_cond_t *pOkToShutdown, pthread_mutex_t *pmutex)
+void ShutdownManager_waitForShutdown(pthread_cond_t *pOkToShutdown, pthread_mutex_t *pShutdownMutex)
 {
-	pthread_mutex_lock(pmutex);
+	pthread_mutex_lock(pShutdownMutex);
 	{
-		pthread_cond_wait(pOkToShutdown, pmutex);
+		pthread_cond_wait(pOkToShutdown, pShutdownMutex);
 	}
-    pthread_mutex_unlock(pmutex);
+    pthread_mutex_unlock(pShutdownMutex);
 }
 
-void ShutdownManager_triggerShutdown(pthread_cond_t *pOkToShutdown, pthread_mutex_t *pmutex)
+void ShutdownManager_triggerShutdown(pthread_cond_t *pOkToShutdown, pthread_mutex_t *pShutdownMutex)
 {
 	pthread_cond_signal(pOkToShutdown);
 	
