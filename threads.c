@@ -119,7 +119,7 @@ void* sendThread() {
 		// printf( "send address:%s\n", buffer );
 		//------------for debugging---------------
 		if (toSend){
-		if ( sendto(*s_socket, toSend, sizeof(toSend)-2, 0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
+		if ( sendto(*s_socket, toSend, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
 			perror("writing to socket failed\n");
 			exit(EXIT_FAILURE);
 		}
