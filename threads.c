@@ -23,7 +23,7 @@ static pthread_cond_t s_OkToShutdown = PTHREAD_COND_INITIALIZER;
 
 static pthread_cond_t s_OkToSend = PTHREAD_COND_INITIALIZER;
 static pthread_cond_t s_OkToPrint = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t s_SharedListMutex = PTHREAD_MUTEX_INITIALIZER;
 
 static List* s_pSendList;
 static List *s_pPrintList;
@@ -49,11 +49,11 @@ static int closedSocket = 0;
 void* inputThread() {
 	while (1) {
 		s_pmsg = malloc(MSG_MAX_LEN);
-		 fgets(s_pmsg, MSG_MAX_LEN , stdin);
+		fgets(s_pmsg, MSG_MAX_LEN , stdin);
 		
 		
 		// start critical section
-		pthread_mutex_lock(&s_mutex);
+		pthread_mutex_lock(&s_SharedListMutex);
 		{
 			//add to list
 			if (List_add(s_pSendList, s_pmsg) != 0) {
@@ -61,23 +61,19 @@ void* inputThread() {
 				exit(EXIT_FAILURE);
 			}
 		}
-		pthread_mutex_unlock(&s_mutex);
+		pthread_mutex_unlock(&s_SharedListMutex);
 		// end critical section
 
-		
 		// now wake up send thread
-		pthread_mutex_lock(&s_mutex);
+		pthread_mutex_lock(&s_SharedListMutex);
 		{
 			pthread_cond_signal(&s_OkToSend);
 		}
-		pthread_mutex_unlock(&s_mutex);
+		pthread_mutex_unlock(&s_SharedListMutex);
+
 		if (strcmp("!\n", s_pmsg) == 0)
 		{
-			printf("thread cancelling during input\n");
-			
 			ShutdownManager_waitForShutdown(&s_OkToShutdown, &shutdownMutex);
-			if (s_pmsg) 
-				free(s_pmsg);
 			printf("input self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
 	}
@@ -94,29 +90,27 @@ void* sendThread() {
 	}
 	while (1) 
 	{
-		//after creating sockets, wait for signal to send (wait for item to be added to list)
-		pthread_mutex_lock(&s_mutex);
+		//wait for signal to send (wait for item to be added to list)
+		pthread_mutex_lock(&s_SharedListMutex);
 		{
-			pthread_cond_wait(&s_OkToSend, &s_mutex);
+			pthread_cond_wait(&s_OkToSend, &s_SharedListMutex);
 		}
-		pthread_mutex_unlock(&s_mutex);
+		pthread_mutex_unlock(&s_SharedListMutex);
 
 		char* toSend = NULL;
-
-		pthread_mutex_lock(&s_mutex);
+		memset(&toSend, 0, sizeof(toSend));
+		pthread_mutex_lock(&s_SharedListMutex);
 		{
 			// take item off list and store in string
 			toSend = List_remove(s_pSendList);
-			
 		}
-		pthread_mutex_unlock(&s_mutex);
+		pthread_mutex_unlock(&s_SharedListMutex);
 		
 		//socket address of receiver (remote address)
 		struct sockaddr_in sinRemote;
 		memset(&sinRemote, 0, sizeof(sinRemote));
 		sinRemote.sin_family = AF_INET; //IPv4 - don't need to implement IPv6
 		memcpy(&sinRemote.sin_addr, remoteHost->h_addr_list[0], remoteHost->h_length);
-		// sinRemote.sin_addr.s_addr = INADDR_ANY;
 		sinRemote.sin_port = htons(*s_pportNumber);
 
 		//------------for debugging---------------
@@ -124,16 +118,21 @@ void* sendThread() {
 		// inet_ntop( AF_INET, &sinRemote.sin_addr, buffer, sizeof( buffer ));
 		// printf( "send address:%s\n", buffer );
 		//------------for debugging---------------
-
-		if ( sendto(*s_socket, toSend, MSG_MAX_LEN, 0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
+		if (toSend){
+		if ( sendto(*s_socket, toSend, sizeof(toSend)-2, 0, (struct sockaddr*) &sinRemote, sizeof(sinRemote)) < 0 ) {
 			perror("writing to socket failed\n");
 			exit(EXIT_FAILURE);
 		}
-		
+		}
 		if (strcmp("!\n", toSend) == 0)
 		{
+			if (toSend) {
+				free(toSend);
+				toSend = NULL;
+			}
 			ShutdownManager_triggerShutdown(&s_OkToShutdown, &shutdownMutex);
-			pthread_mutex_lock(&s_mutex);
+
+			pthread_mutex_lock(&s_SharedListMutex);
 			{
 			if (closedSocket == 0){
 				printf("closing socket from send\n");
@@ -145,18 +144,16 @@ void* sendThread() {
 				closedSocket = 1;
 			}
 			}
-			pthread_mutex_unlock(&s_mutex);
+			pthread_mutex_unlock(&s_SharedListMutex);
+
 			// this block is necessary to exit mutually if a ! is sent
 			printf("receive shutdown from send %d\n", ShutdownManager_isShuttingDown(threadReceive));
 			printf("print shutdown from send %d\n", ShutdownManager_isShuttingDown(threadPrint));
 			//------------------------------------------------------------
 			printf("send shutdown returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
-			if (toSend) {
-				free(toSend);
-				toSend = NULL;
-			}
 		}
-		free(toSend);
+		if (toSend)
+			free(toSend);
 	}
 	return NULL;
 }
@@ -175,24 +172,24 @@ void* receiveThread() {
             exit(EXIT_FAILURE);
         }
         // entering critical section
-        pthread_mutex_lock(&s_mutex);
+        pthread_mutex_lock(&s_SharedListMutex);
         {
 
             // add received item to list to print
             List_add(s_pPrintList, s_preceived);
 
         }
-        pthread_mutex_unlock(&s_mutex);
+        pthread_mutex_unlock(&s_SharedListMutex);
         // done critical section
 
         
         // now wake up print thread
-        pthread_mutex_lock(&s_mutex);
+        pthread_mutex_lock(&s_SharedListMutex);
         {
             flag = 1;
             pthread_cond_signal(&s_OkToPrint);
         }
-        pthread_mutex_unlock(&s_mutex);
+        pthread_mutex_unlock(&s_SharedListMutex);
         if (strcmp("!\n", s_preceived) == 0)
 		{
 			ShutdownManager_waitForShutdown(&s_OkToShutdown, &shutdownMutex);
@@ -204,23 +201,23 @@ void* receiveThread() {
 void* printThread() {
     while (1) {
         // wait for signal to print
-        pthread_mutex_lock(&s_mutex);
+        pthread_mutex_lock(&s_SharedListMutex);
         {
             while (flag == 0)
-                pthread_cond_wait(&s_OkToPrint, &s_mutex);
+                pthread_cond_wait(&s_OkToPrint, &s_SharedListMutex);
         }
-        pthread_mutex_unlock(&s_mutex);
+        pthread_mutex_unlock(&s_SharedListMutex);
 
         char* toPrint = NULL;
 
-        pthread_mutex_lock(&s_mutex);
+        pthread_mutex_lock(&s_SharedListMutex);
         {
             // take item off list and store in string
             toPrint = List_remove(s_pPrintList);
             flag = 0;
         }
         
-        pthread_mutex_unlock(&s_mutex);
+        pthread_mutex_unlock(&s_SharedListMutex);
         if (strcmp("!\n", toPrint) == 0)
 		{
 			if (toPrint) {
@@ -228,7 +225,7 @@ void* printThread() {
 				toPrint = NULL;
 			}
 
-			pthread_mutex_lock(&s_mutex);
+			pthread_mutex_lock(&s_SharedListMutex);
 			{
 			if (closedSocket == 0){
 				printf("closing socket from print\n");
@@ -240,7 +237,7 @@ void* printThread() {
 				closedSocket = 1;
 			}
 			}
-			pthread_mutex_unlock(&s_mutex);
+			pthread_mutex_unlock(&s_SharedListMutex);
 
 			ShutdownManager_triggerShutdown(&s_OkToShutdown, &shutdownMutex);
 

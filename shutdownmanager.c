@@ -1,11 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <netdb.h>
 #include "shutdownmanager.h"
-
-
-
 
 void ShutdownManager_waitForShutdown(pthread_cond_t *pOkToShutdown, pthread_mutex_t *pShutdownMutex)
 {
