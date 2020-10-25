@@ -131,17 +131,25 @@ void* sendThread() {
 		
 		if (strcmp("!\n", toSend) == 0)
 		{
-			printf("send thread shutdown\n");
 			ShutdownManager_triggerShutdown(s_pOkToShutdown, s_pmutex);
+			pthread_mutex_lock(s_pmutex);
+			{
 			if (closedSocket == 0){
-				close(*s_socket);
+				printf("closing socket from send\n");
+				if (close(*s_socket)!=0)
+				{
+					perror("failed to close socket\n");
+					exit(EXIT_FAILURE);
+				}
 				closedSocket = 1;
 			}
+			}
+			pthread_mutex_unlock(s_pmutex);
 			// this block is necessary to exit mutually if a ! is sent
 			printf("receive shutdown from send %d\n", ShutdownManager_isShuttingDown(threadReceive));
 			printf("print shutdown from send %d\n", ShutdownManager_isShuttingDown(threadPrint));
 			//------------------------------------------------------------
-			printf("send shutdown returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
+			printf("send shutdown returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 			if (toSend) {
 				free(toSend);
 				toSend = NULL;
@@ -186,9 +194,8 @@ void* receiveThread() {
         pthread_mutex_unlock(s_pmutex);
         if (strcmp("!\n", s_preceived) == 0)
 		{
-			printf("receive thread shutdown\n");
 			ShutdownManager_waitForShutdown(s_pOkToShutdown, s_pmutex);
-			printf("receive self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
+			printf("receive self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
     }
 }
@@ -220,19 +227,26 @@ void* printThread() {
 				toPrint = NULL;
 			}
 
+			pthread_mutex_lock(s_pmutex);
+			{
 			if (closedSocket == 0){
-			close(*s_socket);
-			closedSocket = 1;
+				printf("closing socket from print\n");
+				if (close(*s_socket)!=0)
+				{
+					perror("failed to close socket\n");
+					exit(EXIT_FAILURE);
+				}
+				closedSocket = 1;
 			}
+			}
+			pthread_mutex_unlock(s_pmutex);
 
-			ShutdownManager_triggerShutdown(s_pOkToShutdown, s_pmutex);
 
 			// this block is necessary to exit mutually if a ! is received
 			printf("input shutdown from print %d\n", ShutdownManager_isShuttingDown(threadInput));
 			printf("send shutdown from print %d\n", ShutdownManager_isShuttingDown(threadSend));
-			printf("receive self shut down returns %d\n",ShutdownManager_isShuttingDown(threadReceive));
 			//------------------------------------------------------------
-			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
+			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
 
         if (toPrint) {
