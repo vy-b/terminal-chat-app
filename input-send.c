@@ -187,6 +187,7 @@ void* receiveThread() {
 		{
 			printf("receive thread shutdown\n");
 			ShutdownManager_waitForShutdown(s_pOkToShutdown, s_pmutex);
+			if (s_pmsg) free(s_pmsg);
 			printf("receive self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
     }
@@ -308,3 +309,4 @@ void receiveVariables_init(pthread_mutex_t *pmutex, pthread_cond_t *pOkToPrint,
     s_socket = socketDescriptor;
     s_pOkToShutdown = pOkToShutdown;
 }
+
