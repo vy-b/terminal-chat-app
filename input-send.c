@@ -75,7 +75,8 @@ void* inputThread() {
 			printf("thread cancelling during input\n");
 			
 			ShutdownManager_waitForShutdown(s_pOkToShutdown, s_pmutex);
-			if (s_pmsg) free(s_pmsg);
+			if (s_pmsg) 
+				free(s_pmsg);
 			printf("input self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
 	}
@@ -229,6 +230,7 @@ void* printThread() {
 			// this block is necessary to exit mutually if a ! is received
 			printf("input shutdown from print %d\n", ShutdownManager_isShuttingDown(threadInput));
 			printf("send shutdown from print %d\n", ShutdownManager_isShuttingDown(threadSend));
+			printf("receive self shut down returns %d\n",ShutdownManager_isShuttingDown(threadReceive));
 			//------------------------------------------------------------
 			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
