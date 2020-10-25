@@ -1,16 +1,10 @@
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <netdb.h>
 #include <string.h>
-#include "helper.h"
-#include "input-send.h"
+#include "socket.h"
+#include "threads.h"
 #include "list.h"
-#include "shutdownmanager.h"
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 
 int main(int argc, char* argv[]) {

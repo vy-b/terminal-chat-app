@@ -1,5 +1,5 @@
-#ifndef _INPUT_RECEIVE_H_
-#define _INPUT_RECEIVE_H_
+#ifndef _THREADS_H_
+#define _THREADS_H_
 
 #include <pthread.h>
 #include "list.h"

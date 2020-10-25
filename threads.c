@@ -3,9 +3,7 @@ input thread waits for keyboard input then adds to the list adt
 signals send thread when input has been added and ready to send
 */
 #include "shutdownmanager.h"
-#include "input-send.h"
 #include "list.h"
-#include "helper.h"
 #include <pthread.h>
 #include <netdb.h>
 #include <unistd.h>
@@ -14,9 +12,9 @@ signals send thread when input has been added and ready to send
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+// #include <sys/socket.h>
+// #include <netinet/in.h>
+// #include <arpa/inet.h>
 
 #define MSG_MAX_LEN 1024
 

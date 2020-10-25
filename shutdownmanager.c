@@ -19,13 +19,6 @@ void ShutdownManager_waitForShutdown(pthread_cond_t *pOkToShutdown, pthread_mute
 void ShutdownManager_triggerShutdown(pthread_cond_t *pOkToShutdown, pthread_mutex_t *pShutdownMutex)
 {
 	pthread_cond_signal(pOkToShutdown);
-	
-
-	// pthread_mutex_lock(s_pmutex);
-	// 	{
-	// 		pthread_cond_signal(s_pOkToShutdown);
-	// 	}
-	// pthread_mutex_unlock(s_pmutex);
 }
 
 int ShutdownManager_isShuttingDown(pthread_t thread){
