@@ -36,3 +36,8 @@ void free_cond(void *cond)
 	pcond = (pthread_cond_t*) cond;
 	pthread_cond_destroy(pcond);
 }
+
+void free_malloc(void* item)
+{
+	free(item);
+}
