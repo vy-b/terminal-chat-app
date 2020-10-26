@@ -12,11 +12,28 @@ void ShutdownManager_waitForShutdown(pthread_cond_t *pOkToShutdown, pthread_mute
     pthread_mutex_unlock(pShutdownMutex);
 }
 
-void ShutdownManager_triggerShutdown(pthread_cond_t *pOkToShutdown, pthread_mutex_t *pShutdownMutex)
+void ShutdownManager_triggerShutdown(pthread_cond_t *pOkToShutdown)
 {
 	pthread_cond_signal(pOkToShutdown);
 }
 
-int ShutdownManager_isShuttingDown(pthread_t thread){
-	return pthread_cancel(thread);
+int ShutdownManager_isShuttingDown(pthread_t thread)
+{
+	pthread_cancel(thread);
+	return pthread_join(thread,NULL);
+}
+
+void free_mutexes(void *mutex)
+{
+	pthread_mutex_t* pmutex;
+	pmutex = (pthread_mutex_t*) mutex;
+	pthread_mutex_destroy(pmutex);
+}
+
+
+void free_cond(void *cond)
+{
+	pthread_cond_t* pcond;
+	pcond = (pthread_cond_t*) cond;
+	pthread_cond_destroy(pcond);
 }
