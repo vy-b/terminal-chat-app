@@ -240,8 +240,8 @@ void* printThread() {
 			ShutdownManager_triggerShutdown(&s_OkToShutdown);
 
 			// this block is necessary to exit mutually if a ! is received but not sent
-			// printf("input shutdown from print %d\n", ShutdownManager_isShuttingDown(threadInput));
-			// printf("send shutdown from print %d\n", ShutdownManager_isShuttingDown(threadSend));
+			printf("input shutdown from print %d\n", ShutdownManager_isShuttingDown(threadInput));
+			printf("send shutdown from print %d\n", ShutdownManager_isShuttingDown(threadSend));
 			//------------------------------------------------------------
 			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
@@ -259,10 +259,10 @@ void inputThread_init()
 	pthread_create(&threadInput, NULL, inputThread, NULL);
 }
 
-void inputThread_shutdown()
+int inputThread_shutdown()
 {
 	//pthread_cancel(threadInput);
-	pthread_join(threadInput, NULL);
+	return pthread_join(threadInput, NULL);
 }
 
 void sendThread_init()
@@ -270,10 +270,10 @@ void sendThread_init()
 	pthread_create(&threadSend, NULL, sendThread, NULL);
 }
 
-void sendThread_shutdown()
+int sendThread_shutdown()
 {
 	//pthread_cancel(threadSend);
-	pthread_join(threadSend, NULL);
+	return pthread_join(threadSend, NULL);
 }
 
 void variables_init(List* pPrintList,
@@ -292,9 +292,9 @@ void printThread_init()
     pthread_create(&threadPrint, NULL, printThread, NULL);
 }
 
-void printThread_shutdown()
+int printThread_shutdown()
 {
-    pthread_join(threadPrint, NULL);
+    return pthread_join(threadPrint, NULL);
 }
 
 void receiveThread_init()
@@ -302,8 +302,8 @@ void receiveThread_init()
     pthread_create(&threadReceive, NULL, receiveThread, NULL);
 }
 
-void receiveThread_shutdown()
+int receiveThread_shutdown()
 {
-    pthread_join(threadReceive, NULL);
+    return pthread_join(threadReceive, NULL);
 }
 

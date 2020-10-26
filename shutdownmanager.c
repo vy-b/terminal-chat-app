@@ -19,8 +19,7 @@ void ShutdownManager_triggerShutdown(pthread_cond_t *pOkToShutdown)
 
 int ShutdownManager_isShuttingDown(pthread_t thread)
 {
-	pthread_cancel(thread);
-	return pthread_join(thread,NULL);
+	return pthread_cancel(thread);
 }
 
 void free_mutexes(void *mutex)

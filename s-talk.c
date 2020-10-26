@@ -43,8 +43,8 @@ int main(int argc, char* argv[]) {
 	printThread_init();
 
 
-	sendThread_shutdown();
-	inputThread_shutdown();
-	receiveThread_shutdown();
-	printThread_shutdown();
+	printf("send join return %d\n",sendThread_shutdown());
+	printf("input join return %d\n",inputThread_shutdown());
+	printf("receive join return %d\n",receiveThread_shutdown());
+	printf("output join return %d\n",printThread_shutdown());
 }
