@@ -145,8 +145,8 @@ void* sendThread() {
 			pthread_mutex_unlock(&s_SharedListMutex);
 
 			// this block is necessary to exit mutually if a ! is sent but not received
-			// printf("receive shutdown from send %d\n", ShutdownManager_isShuttingDown(threadReceive));
-			// printf("print shutdown from send %d\n", ShutdownManager_isShuttingDown(threadPrint));
+			printf("receive shutdown from send %d\n", ShutdownManager_isShuttingDown(threadReceive));
+			printf("print shutdown from send %d\n", ShutdownManager_isShuttingDown(threadPrint));
 			//------------------------------------------------------------
 			printf("send self shutdown returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
