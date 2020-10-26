@@ -134,9 +134,11 @@ void* sendThread() {
 				free(toSend);
 				toSend = NULL;
 			}
+			pthread_mutex_lock(&shutdownMutex);
 			ShutdownManager_triggerShutdown(&s_OkToShutdown);
 			ShutdownManager_triggerShutdown(&s_OkToShutdown);
 			ShutdownManager_triggerShutdown(&s_OkToShutdown);
+			pthread_mutex_unlock(&shutdownMutex);
 
 			pthread_mutex_lock(&s_SharedListMutex);
 			{
@@ -279,11 +281,13 @@ void* printThread() {
 			}
 			}
 			pthread_mutex_unlock(&s_SharedListMutex);
-
-			ShutdownManager_triggerShutdown(&s_OkToShutdown);
-			ShutdownManager_triggerShutdown(&s_OkToShutdown);
-			ShutdownManager_triggerShutdown(&s_OkToShutdown);
 			
+			pthread_mutex_lock(&shutdownMutex);
+			ShutdownManager_triggerShutdown(&s_OkToShutdown);
+			ShutdownManager_triggerShutdown(&s_OkToShutdown);
+			ShutdownManager_triggerShutdown(&s_OkToShutdown);
+			pthread_mutex_unlock(&shutdownMutex);
+
 			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
 		if (sentExit == 1)
