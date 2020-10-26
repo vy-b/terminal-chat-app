@@ -75,6 +75,7 @@ void* inputThread() {
 			printf("input self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
 		if (receivedExit == 1){
+			printf("an exit msg was received, exiting in input\n");
 			ShutdownManager_waitForShutdown(&s_OkToShutdown, &shutdownMutex);
 			printf("input shut down from receivedExit returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
@@ -134,9 +135,7 @@ void* sendThread() {
 				free(toSend);
 				toSend = NULL;
 			}
-			pthread_mutex_lock(&shutdownMutex);
-			pthread_cond_broadcast(&s_OkToShutdown);
-			pthread_mutex_unlock(&shutdownMutex);
+			
 
 			pthread_mutex_lock(&s_SharedListMutex);
 			{
@@ -157,7 +156,10 @@ void* sendThread() {
 			pthread_cleanup_push(free_cond, &s_OkToSend);
 			pthread_cleanup_push(free_cond, &s_OkToPrint);
 			pthread_cleanup_push(free_cond, &s_OkToShutdown);
-			
+
+			pthread_mutex_lock(&shutdownMutex);
+			pthread_cond_broadcast(&s_OkToShutdown);
+			pthread_mutex_unlock(&shutdownMutex);
 			printf("send self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 			pthread_cleanup_pop(1);
 			pthread_cleanup_pop(1);
@@ -168,6 +170,7 @@ void* sendThread() {
 		// if an exit message "!" was received but not sent
 		if (receivedExit == 1)
 		{
+			printf("an exit msg was received, exiting in send\n");
 			if (toSend) {
 				free(toSend);
 				toSend = NULL;
@@ -231,6 +234,7 @@ void* receiveThread() {
 		}
 		if( sentExit == 1)
 		{
+			printf("an exit msg was sent, exiting in receive\n");
 			ShutdownManager_waitForShutdown(&s_OkToShutdown, &shutdownMutex);
 			printf("receive shut down from sentExit returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
@@ -288,6 +292,7 @@ void* printThread() {
 		}
 		if (sentExit == 1)
 		{
+			printf("an exit msg was sent, exiting in print\n");
 			if (toPrint) {
 				free(toPrint);
 				toPrint = NULL;
