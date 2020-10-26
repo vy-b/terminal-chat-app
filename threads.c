@@ -135,6 +135,8 @@ void* sendThread() {
 				toSend = NULL;
 			}
 			ShutdownManager_triggerShutdown(&s_OkToShutdown);
+			ShutdownManager_triggerShutdown(&s_OkToShutdown);
+			ShutdownManager_triggerShutdown(&s_OkToShutdown);
 
 			pthread_mutex_lock(&s_SharedListMutex);
 			{
@@ -156,11 +158,7 @@ void* sendThread() {
 			pthread_cleanup_push(free_cond, &s_OkToPrint);
 			pthread_cleanup_push(free_cond, &s_OkToShutdown);
 			
-			if (ShutdownManager_isShuttingDown( pthread_self() ) != 0)
-			{
-				perror("Send thread self-shutdown failed");
-				exit(EXIT_FAILURE);
-			}
+			printf("send self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 			pthread_cleanup_pop(1);
 			pthread_cleanup_pop(1);
 			pthread_cleanup_pop(1);
@@ -283,7 +281,9 @@ void* printThread() {
 			pthread_mutex_unlock(&s_SharedListMutex);
 
 			ShutdownManager_triggerShutdown(&s_OkToShutdown);
-
+			ShutdownManager_triggerShutdown(&s_OkToShutdown);
+			ShutdownManager_triggerShutdown(&s_OkToShutdown);
+			
 			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
 		if (sentExit == 1)
