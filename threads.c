@@ -43,6 +43,7 @@ static int flag = 0;
 static int closedSocket = 0;
 static int sentExit = 0;
 static int receivedExit = 0;
+static int waiting = 0;
 // waits for input from keyboard and adds to list
 void* inputThread() {
 	while (1) {
@@ -71,12 +72,14 @@ void* inputThread() {
 
 		if (strcmp("!\n", s_pmsg) == 0)
 		{
+			waiting++;
 			ShutdownManager_waitForShutdown(&s_OkToShutdown, &shutdownMutex);
 			printf("input self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
 		while (receivedExit == 1)
 		{
 			if (s_pmsg) free(s_pmsg);
+			waiting++;
 			pthread_cond_wait(&s_OkToShutdown, &shutdownMutex);
 			ShutdownManager_isShuttingDown(pthread_self());
 		}
@@ -149,6 +152,7 @@ void* sendThread() {
 			}
 			pthread_mutex_unlock(&s_SharedListMutex);
 			
+			while (waiting!=3);
 			pthread_cond_broadcast(&s_OkToShutdown);
 			
 			// this block is necessary to exit mutually if a ! is sent but not received
@@ -201,11 +205,13 @@ void* receiveThread() {
         pthread_mutex_unlock(&s_SharedListMutex);
         if (strcmp("!\n", s_preceived) == 0)
 		{
+			waiting++;
 			ShutdownManager_waitForShutdown(&s_OkToShutdown, &shutdownMutex);
 			printf("receive self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
 		while (sentExit == 1)
 		{
+			waiting++;
 			printf("receive thread sent an exit waiting for shutdown");
 			if (s_preceived) free(s_preceived);
 			pthread_cond_wait(&s_OkToShutdown, &shutdownMutex);
@@ -254,14 +260,15 @@ void* printThread() {
 			}
 			}
 			pthread_mutex_unlock(&s_SharedListMutex);
+			while (waiting!=3);
 			pthread_cond_broadcast(&s_OkToShutdown);
-			ShutdownManager_triggerShutdown(&s_OkToShutdown);
 			// this block is necessary to exit mutually if a ! is received but not sent
 			//------------------------------------------------------------
 			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
 		while (sentExit == 1)
 		{
+			waiting++;
 			printf("print thread sent an exit waiting for shutdown");
 			if (toPrint) free(toPrint);
 			pthread_mutex_lock (&shutdownMutex);
