@@ -40,6 +40,6 @@ void free_cond(void *cond)
 
 void free_malloc(void* item)
 {
-	if(item!=NULL)
+	if(item)
 		free(item);
 }
