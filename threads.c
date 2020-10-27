@@ -206,10 +206,9 @@ void* receiveThread() {
 		}
 		while (sentExit == 1)
 		{
+			printf("receive thread sent an exit waiting for shutdown");
 			if (s_preceived) free(s_preceived);
-			pthread_mutex_lock (&shutdownMutex);
 			pthread_cond_wait(&s_OkToShutdown, &shutdownMutex);
-			pthread_mutex_unlock(&shutdownMutex);
 			ShutdownManager_isShuttingDown(pthread_self());
 		}
     }
@@ -263,6 +262,7 @@ void* printThread() {
 		}
 		while (sentExit == 1)
 		{
+			printf("print thread sent an exit waiting for shutdown");
 			if (toPrint) free(toPrint);
 			pthread_mutex_lock (&shutdownMutex);
 			pthread_cond_wait(&s_OkToShutdown, &shutdownMutex);
