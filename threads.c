@@ -39,6 +39,8 @@ static pthread_t threadSend;
 static int* s_socket;
 static char* s_pmsg = NULL;
 static char* s_preceived = NULL;
+static char* toPrint = NULL;
+static char* toSend = NULL;
 static int flag = 0;
 static int closedSocket = 0;
 
@@ -94,8 +96,6 @@ void* sendThread() {
 			pthread_cond_wait(&s_OkToSend, &s_SharedListMutex);
 		}
 		pthread_mutex_unlock(&s_SharedListMutex);
-
-		char* toSend = NULL;
 		memset(&toSend, 0, sizeof(toSend));
 		pthread_mutex_lock(&s_SharedListMutex);
 		{
@@ -122,9 +122,6 @@ void* sendThread() {
 		}
 		if (strcmp("!\n", toSend) == 0)
 		{
-			if (toSend) {
-				free(toSend);
-			}
 			ShutdownManager_triggerShutdown(&s_OkToShutdown);
 
 			pthread_mutex_lock(&s_SharedListMutex);
@@ -141,20 +138,14 @@ void* sendThread() {
 			}
 			pthread_mutex_unlock(&s_SharedListMutex);
 			
-			pthread_cleanup_push(free_mutexes, &s_SharedListMutex);
-			pthread_cleanup_push(free_mutexes, &shutdownMutex);
-			pthread_cleanup_push(free_cond, &s_OkToSend);
-			pthread_cleanup_push(free_cond, &s_OkToPrint);
-			pthread_cleanup_push(free_cond, &s_OkToShutdown);
-
+			pthread_cleanup_push(free_malloc,toSend);
+			pthread_cleanup_push(free_malloc,toPrint);
 			// this block is necessary to exit mutually if a ! is sent but not received
 			printf("receive shutdown from send %d\n", ShutdownManager_isShuttingDown(threadReceive));
 			printf("print shutdown from send %d\n", ShutdownManager_isShuttingDown(threadPrint));
 			//------------------------------------------------------------
 			printf("send self shutdown returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
-			pthread_cleanup_pop(1);
-			pthread_cleanup_pop(1);
-			pthread_cleanup_pop(1);
+
 			pthread_cleanup_pop(1);
 			pthread_cleanup_pop(1);
 		}
@@ -214,8 +205,6 @@ void* printThread() {
         }
         pthread_mutex_unlock(&s_SharedListMutex);
 
-        char* toPrint = NULL;
-
         pthread_mutex_lock(&s_SharedListMutex);
         {
             // take item off list and store in string
@@ -226,9 +215,6 @@ void* printThread() {
         pthread_mutex_unlock(&s_SharedListMutex);
         if (strcmp("!\n", toPrint) == 0)
 		{
-			if (toPrint) {
-				free(toPrint);
-			}
 			// reusing the shared list mutex for socket closing (which is shared between send and receive)
 			pthread_mutex_lock(&s_SharedListMutex);
 			{
@@ -245,12 +231,15 @@ void* printThread() {
 			pthread_mutex_unlock(&s_SharedListMutex);
 
 			ShutdownManager_triggerShutdown(&s_OkToShutdown);
-			
+			pthread_cleanup_push(free_malloc,toSend);
+			pthread_cleanup_push(free_malloc,toPrint);
 			// this block is necessary to exit mutually if a ! is received but not sent
 			printf("input shutdown from print %d\n", ShutdownManager_isShuttingDown(threadInput));
 			printf("send shutdown from print %d\n", ShutdownManager_isShuttingDown(threadSend));
 			//------------------------------------------------------------
 			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
+			pthread_cleanup_pop(1);
+			pthread_cleanup_pop(1);
 		}
 
         if (toPrint) {

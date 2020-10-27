@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <netdb.h>
 #include "shutdownmanager.h"
+#include "list.h"
 
 void ShutdownManager_waitForShutdown(pthread_cond_t *pOkToShutdown, pthread_mutex_t *pShutdownMutex)
 {
@@ -39,5 +40,6 @@ void free_cond(void *cond)
 
 void free_malloc(void* item)
 {
-	free(item);
+	if(item!=NULL)
+		free(item);
 }
