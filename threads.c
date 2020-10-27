@@ -146,12 +146,13 @@ void* sendThread() {
 			pthread_cleanup_push(free_cond, &s_OkToSend);
 			pthread_cleanup_push(free_cond, &s_OkToPrint);
 			pthread_cleanup_push(free_cond, &s_OkToShutdown);
-
+			pthread_cleanup_push(free_malloc, &s_preceived);
 			// this block is necessary to exit mutually if a ! is sent but not received
 			printf("receive shutdown from send %d\n", ShutdownManager_isShuttingDown(threadReceive));
 			printf("print shutdown from send %d\n", ShutdownManager_isShuttingDown(threadPrint));
 			//------------------------------------------------------------
 			printf("send self shutdown returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
+			pthread_cleanup_pop(1);
 			pthread_cleanup_pop(1);
 			pthread_cleanup_pop(1);
 			pthread_cleanup_pop(1);
@@ -245,12 +246,13 @@ void* printThread() {
 			pthread_mutex_unlock(&s_SharedListMutex);
 
 			ShutdownManager_triggerShutdown(&s_OkToShutdown);
-
+			pthread_cleanup_push(free_malloc, &s_pmsg);
 			// this block is necessary to exit mutually if a ! is received but not sent
 			printf("input shutdown from print %d\n", ShutdownManager_isShuttingDown(threadInput));
 			printf("send shutdown from print %d\n", ShutdownManager_isShuttingDown(threadSend));
 			//------------------------------------------------------------
 			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
+			pthread_cleanup_pop(1);
 		}
 
         if (toPrint) {
