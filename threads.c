@@ -78,6 +78,7 @@ void* inputThread() {
 		if (receivedExit == 1)
 		{
 			waiting++;
+			printf("waiting in input is %d",waiting);
 			if (s_pmsg) free(s_pmsg);
 			pthread_cond_wait(&s_OkToShutdown, &shutdownMutex);
 			ShutdownManager_isShuttingDown(pthread_self());
@@ -161,6 +162,7 @@ void* sendThread() {
 		if (receivedExit == 1)
 		{
 			waiting++;
+			printf("waiting in send is %d",waiting);
 			if (toSend) free(toSend);
 			pthread_cond_wait(&s_OkToShutdown, &shutdownMutex);
 			ShutdownManager_isShuttingDown(pthread_self());
@@ -211,6 +213,7 @@ void* receiveThread() {
 		if (sentExit == 1)
 		{
 			waiting++;
+			printf("waiting in receive is %d",waiting);
 			printf("receive thread sent an exit waiting for shutdown");
 			if (s_preceived) free(s_preceived);
 			pthread_cond_wait(&s_OkToShutdown, &shutdownMutex);
@@ -268,6 +271,7 @@ void* printThread() {
 		if (sentExit == 1)
 		{
 			waiting++;
+			printf("waiting in print is %d",waiting);
 			printf("print thread sent an exit waiting for shutdown");
 			if (toPrint) free(toPrint);
 			pthread_mutex_lock (&shutdownMutex);
