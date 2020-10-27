@@ -72,14 +72,13 @@ void* inputThread() {
 
 		if (strcmp("!\n", s_pmsg) == 0)
 		{
-			waiting++;
 			ShutdownManager_waitForShutdown(&s_OkToShutdown, &shutdownMutex);
 			printf("input self shut down returns %d\n",ShutdownManager_isShuttingDown(pthread_self()));
 		}
-		while (receivedExit == 1)
+		if (receivedExit == 1)
 		{
-			if (s_pmsg) free(s_pmsg);
 			waiting++;
+			if (s_pmsg) free(s_pmsg);
 			pthread_cond_wait(&s_OkToShutdown, &shutdownMutex);
 			ShutdownManager_isShuttingDown(pthread_self());
 		}
@@ -151,16 +150,17 @@ void* sendThread() {
 			}
 			}
 			pthread_mutex_unlock(&s_SharedListMutex);
-			
-			while (waiting!=3);
+
+			while(waiting!=2);
 			pthread_cond_broadcast(&s_OkToShutdown);
 			
 			// this block is necessary to exit mutually if a ! is sent but not received
 			//------------------------------------------------------------
 			printf("send self shutdown returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
-		while (receivedExit == 1)
+		if (receivedExit == 1)
 		{
+			waiting++;
 			if (toSend) free(toSend);
 			pthread_cond_wait(&s_OkToShutdown, &shutdownMutex);
 			ShutdownManager_isShuttingDown(pthread_self());
@@ -205,11 +205,10 @@ void* receiveThread() {
         pthread_mutex_unlock(&s_SharedListMutex);
         if (strcmp("!\n", s_preceived) == 0)
 		{
-			waiting++;
 			ShutdownManager_waitForShutdown(&s_OkToShutdown, &shutdownMutex);
 			printf("receive self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
-		while (sentExit == 1)
+		if (sentExit == 1)
 		{
 			waiting++;
 			printf("receive thread sent an exit waiting for shutdown");
@@ -260,13 +259,13 @@ void* printThread() {
 			}
 			}
 			pthread_mutex_unlock(&s_SharedListMutex);
-			while (waiting!=3);
+			while(waiting!=2);
 			pthread_cond_broadcast(&s_OkToShutdown);
 			// this block is necessary to exit mutually if a ! is received but not sent
 			//------------------------------------------------------------
 			printf("print self shut down returns %d\n",ShutdownManager_isShuttingDown( pthread_self() ));
 		}
-		while (sentExit == 1)
+		if (sentExit == 1)
 		{
 			waiting++;
 			printf("print thread sent an exit waiting for shutdown");
